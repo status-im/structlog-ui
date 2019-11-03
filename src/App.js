@@ -6,10 +6,10 @@ import stripAnsi from 'strip-ansi';
 import ReactJson from 'react-json-view';
 import './App.css';
 import Logs from './Logs.js';
-import {Button, Card, Collapse, Navbar, Nav, Container} from 'react-bootstrap';
+import {Button, Card, Collapse, Navbar, Nav, Container, Modal} from 'react-bootstrap';
 import ReactBootstrapSlider from 'react-bootstrap-slider';
 
-import all_data from './log.json'
+import all_data from './log_embark_run.json'
 
 let convert = new Convert();
 
@@ -46,6 +46,29 @@ const ImportFromFileBodyComponent = () => {
   </div>;
 };
 
+function DetailModal({show, setShow, title, content}) {
+  return (
+    <>
+      <Modal
+        size="xl"
+        show={show}
+        onHide={() => setShow(false)}
+        // dialogClassName="modal-90w"
+        aria-labelledby="example-custom-modal-styling-title"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title id="example-custom-modal-styling-title">
+            {title}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <ReactJson src={content} theme="monokai" groupArraysAfterLength={10} name={false} collapsed={3} />
+        </Modal.Body>
+      </Modal>
+    </>
+  );
+}
+
 
 function Section({title, children, defaultOpen}) {
   const [open, setOpen] = useState(defaultOpen);
@@ -67,24 +90,30 @@ function Section({title, children, defaultOpen}) {
   );
 }
 
-const LogFormatter = ({ value }) => (
-  <>
-    {stripAnsi(value)}
-  </>
-);
+const LogFormatter = ({ onClick }) => {
+  return (props) => {
+    return (
+      <span onClick={onClick(props)}>
+        {stripAnsi(props.value)}
+      </span>
+    )
+  }
+};
 
-const LogTypeProvider = props => (
-  <DataTypeProvider
-    formatterComponent={LogFormatter}
-    {...props}
-  />
-);
-
+const LogTypeProvider = (props) => {
+  console.dir(props)
+  return (
+    <DataTypeProvider
+      formatterComponent={LogFormatter(props)}
+      {...props}
+    />
+  )
+}
 
 const StepFormatter = ({onClick}) => {
   return (props) => {
     return (
-      <span onClick={onClick(props.value)}>
+      <span onClick={onClick(props)}>
         {stripAnsi(props.value)}
       </span>
     );
@@ -143,7 +172,18 @@ class App extends React.PureComponent {
         // { name: 'inputs', width: 200 },
         { columnName: 'msg', width: 200 },
       ],
-      defaultOrder: ['session', 'parent_id', 'id', 'step', 'name', 'type', 'timestamp', 'msg']
+      defaultOrder: ['session', 'parent_id', 'id', 'step', 'name', 'type', 'timestamp', 'msg'],
+      numberFilterOperations: [
+        'equal',
+        'notEqual',
+        'greaterThan',
+        'greaterThanOrEqual',
+        'lessThan',
+        'lessThanOrEqual',
+      ],
+      shouldShowModal: false,
+      modalTitle: "",
+      modalContent: {}
     };
 
     this.previousLog = () => {
@@ -231,6 +271,7 @@ class App extends React.PureComponent {
           let current_step = this.state.current_index + i + 1
 
           let newItem = all_data_ordered[current_step]
+          if (!newItem) break;
           if (newItem.type.indexOf("log_") === 0) {
             nextLogs.push(current_step + ". " + newItem.name)
           } else {
@@ -241,11 +282,17 @@ class App extends React.PureComponent {
           data.push(newItem)
         }
 
-        let newItem = all_data_ordered[this.state.current_index + diff]
+        let current_index = this.state.current_index + diff
+        let newItem = all_data_ordered[current_index]
+        // FIXME: probably not needed / wrong index
+        if (!newItem) {
+          newItem = all_data_ordered[this.state.current_index + diff - 1]
+          current_index = this.state.current_index + diff - 1
+        }
 
         this.setState({
           rows: nextRows,
-          current_index: (this.state.current_index + diff),
+          current_index: (current_index),
           current_id: newItem.id,
           logs: nextLogs,
           current: newItem
@@ -264,21 +311,44 @@ class App extends React.PureComponent {
         this.goToStep(parseInt(step))
       }
     }
+
+    this.setShow = (value) => {
+      this.setState({shouldShowModal: value})
+    }
+
+    this.viewRow = (value) => {
+      return () => {
+        const {step} = value.row;
+        let item = all_data_ordered[step]
+
+        if (!item) return;
+
+        this.setState({
+          modalTitle: "step " + item.step,
+          modalContent: item,
+          shouldShowModal: true
+        })
+      }
+    }
   }
 
   render() {
     return (
       <div>
+        <DetailModal show={this.state.shouldShowModal} setShow={this.setShow} title={this.state.modalTitle} content={this.state.modalContent} />
         <Navbar fixed="top" style={{"background-color": "white", "border-bottom": "1px solid black"}}>
           {/* <ImportFromFileBodyComponent /> */}
+          <Button onClick={() => { this.setState({shouldShowModal: true})}}>show</Button>
           <Navbar.Brand href="#">StructLog</Navbar.Brand>
           <Nav className="mr-auto">
-          step: {this.state.current_index} id: {this.state.current_id}
+          step: {this.state.current_index} / {this.state.max_index} id: {this.state.current_id}
           </Nav>
           < inline>
+          <button onClick={() => { this.goToStep(1) }}>First</button>
           <button onClick={this.previousLog}>Previous</button>
           <ReactBootstrapSlider min={0} max={this.state.max_index} change={this.changeValue} value={this.state.current_index} />
           <button onClick={this.nextLog}>Next</button>
+          <button onClick={() => { this.goToStep(this.state.max_index) }}>Last</button>
           </inline>
         </Navbar>
         <div style={{"margin-top": "55px"}}>
@@ -298,8 +368,8 @@ class App extends React.PureComponent {
         </Section>
         <Section title="Logs" defaultOpen={true}>
           <Grid rows={this.state.rows} columns={this.state.columns} >
-            <LogTypeProvider for={["name"]} />
-            <StepTypeProvider for={["step"]} onClick={this.changeStep} />
+            <LogTypeProvider for={["name"]} onClick={this.viewRow} />
+            <StepTypeProvider for={["step"]} onClick={this.viewRow} availableFilterOperations={this.state.numberFilterOperations} />
             <TreeDataState defaultExpandedRowIds={this.state.defaultExpandedRowIds} />
             <CustomTreeData getChildRows={this.getChildRows} />
             <FilteringState defaultFilters={[]} />
