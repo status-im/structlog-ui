@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import { SearchState, SortingState, IntegratedSorting, TreeDataState, CustomTreeData, FilteringState, IntegratedFiltering, TableColumnVisibility} from '@devexpress/dx-react-grid';
+import { SearchState, SortingState, IntegratedSorting, TreeDataState, CustomTreeData, FilteringState, IntegratedFiltering, TableColumnVisibility, DataTypeProvider } from '@devexpress/dx-react-grid';
 import { Grid, Table, TableHeaderRow, TableTreeColumn, TableFilterRow, SearchPanel, Toolbar, ColumnChooser, TableColumnResizing, DragDropProvider, TableColumnReordering  } from '@devexpress/dx-react-grid-bootstrap4';
 import Convert from 'ansi-to-html';
 import stripAnsi from 'strip-ansi';
@@ -67,6 +67,40 @@ function Section({title, children, defaultOpen}) {
   );
 }
 
+const LogFormatter = ({ value }) => (
+  <>
+    {stripAnsi(value)}
+  </>
+);
+
+const LogTypeProvider = props => (
+  <DataTypeProvider
+    formatterComponent={LogFormatter}
+    {...props}
+  />
+);
+
+
+const StepFormatter = ({onClick}) => {
+  return (props) => {
+    return (
+      <span onClick={onClick(props.value)}>
+        {stripAnsi(props.value)}
+      </span>
+    );
+  }
+}
+
+const StepTypeProvider = (props) => {
+  return (
+    <DataTypeProvider
+      formatterComponent={StepFormatter(props)}
+      {...props}
+    />
+  )
+}
+
+
 class App extends React.PureComponent {
 
   constructor(props) {
@@ -90,7 +124,7 @@ class App extends React.PureComponent {
         { name: 'msg', title: 'Error' },
       ],
       rows: [session_object],
-      tableColumnExtensions: [{ columnName: 'name', width: 300 }],
+      tableColumnExtensions: [{ columnName: 'name', width: 300, align: 'left' }],
       // defaultExpandedRowIds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
       defaultExpandedRowIds: [],
       defaultHiddenColumnNames: ['session', 'parent_id', 'id', 'error'],
@@ -102,7 +136,7 @@ class App extends React.PureComponent {
         { columnName: 'parent_id', width: 200 },
         { columnName: 'id', width: 200 },
         { columnName: 'step', width: 150 },
-        { columnName: 'name', width: 400 },
+        { columnName: 'name', width: 600 },
         { columnName: 'type', width: 200 },
         { columnName: 'timestamp', width: 200 },
         // { name: 'error', width: 200 },
@@ -132,18 +166,21 @@ class App extends React.PureComponent {
       const nextRows = this.state.rows.slice();
       const nextLogs = this.state.logs.slice();
       if (!all_data_ordered[this.state.current_index]) return
+
+      let current_step = this.state.current_index + 1
+
       let newItem = all_data_ordered[this.state.current_index]
       if (newItem.type.indexOf("log_") === 0) {
-        nextLogs.push(newItem.name)
+        nextLogs.push(current_step + ". " + newItem.name)
       } else {
         nextLogs.push("") // easier to slice it after...
       }
-      newItem.name = stripAnsi(newItem.name)
-      newItem.step = this.state.current_index + 1
+      // newItem.name = stripAnsi(newItem.name)
+      newItem.step = current_step
       data.push(newItem)
       this.setState({
         rows: nextRows,
-        current_index: (this.state.current_index + 1),
+        current_index: (current_step),
         current_id: newItem.id,
         logs: nextLogs,
         current: newItem
@@ -155,24 +192,76 @@ class App extends React.PureComponent {
       return (row ? data.filter((x) => { return x.parent_id === row.id }) : rootRows)
     }
 
-    this.changeValue = ({target}) => {
-      let value = target.value;
+    this.goToStep = (value) => {
       if (value === this.state.current_index) return;
 
       if (value < this.state.current_index) {
         let diff = this.state.current_index - value;
+
+        const nextRows = this.state.rows.slice();
+        const nextLogs = this.state.logs.slice();
+
         for (let i=0; i<diff; i++) {
-          // TODO: instead do this 'in place' THEN do the setState
-          this.previousLog();
+          let newItem = all_data_ordered[this.state.current_index - diff - 1]
+          data.pop();
+          nextLogs.pop()
+          newItem.step = this.state.current_index - diff - 1
         }
+
+      let newItem = all_data_ordered[this.state.current_index - diff]
+
+        this.setState({
+          rows: nextRows,
+          current_index: (this.state.current_index - diff),
+          logs: nextLogs,
+          current: newItem
+        });
       }
 
       if (value > this.state.current_index) {
         let diff = value - this.state.current_index;
+
+        const nextRows = this.state.rows.slice();
+        const nextLogs = this.state.logs.slice();
+
         for (let i=0; i<diff; i++) {
-          // TODO: instead do this 'in place' THEN do the setState
-          this.nextLog();
+          // TODO: refactor this
+          if (!all_data_ordered[this.state.current_index]) return
+
+          let current_step = this.state.current_index + i + 1
+
+          let newItem = all_data_ordered[current_step]
+          if (newItem.type.indexOf("log_") === 0) {
+            nextLogs.push(current_step + ". " + newItem.name)
+          } else {
+            nextLogs.push("") // easier to slice it after...
+          }
+          // newItem.name = stripAnsi(newItem.name)
+          newItem.step = current_step
+          data.push(newItem)
         }
+
+        let newItem = all_data_ordered[this.state.current_index + diff]
+
+        this.setState({
+          rows: nextRows,
+          current_index: (this.state.current_index + diff),
+          current_id: newItem.id,
+          logs: nextLogs,
+          current: newItem
+        });
+
+      }
+    }
+
+    this.changeValue = ({target}) => {
+      let value = target.value;
+      this.goToStep(value)
+    }
+
+    this.changeStep = (step) => {
+      return () => {
+        this.goToStep(parseInt(step))
       }
     }
   }
@@ -194,7 +283,7 @@ class App extends React.PureComponent {
         </Navbar>
         <div style={{"margin-top": "55px"}}>
         <Section title="Current" defaultOpen={true}>
-          <ReactJson src={this.state.current} theme="monokai" groupArraysAfterLength={5} name={false} />
+          <ReactJson src={this.state.current} theme="monokai" groupArraysAfterLength={5} name={false} collapsed={2} />
         </Section>
         <Section title="Console Output" defaultOpen={true}>
           <Logs>
@@ -209,6 +298,8 @@ class App extends React.PureComponent {
         </Section>
         <Section title="Logs" defaultOpen={true}>
           <Grid rows={this.state.rows} columns={this.state.columns} >
+            <LogTypeProvider for={["name"]} />
+            <StepTypeProvider for={["step"]} onClick={this.changeStep} />
             <TreeDataState defaultExpandedRowIds={this.state.defaultExpandedRowIds} />
             <CustomTreeData getChildRows={this.getChildRows} />
             <FilteringState defaultFilters={[]} />
