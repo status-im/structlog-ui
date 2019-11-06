@@ -6,29 +6,25 @@ import ConsoleSection from './ConsoleSection.js';
 import LogsSection from './LogsSection.js';
 import DebugBar from './DebugBar.js';
 
-// import all_data from './logs/log_embark_run.json'
 import all_data from './logs/log.json'
-let all_data_ordered = Object.values(all_data).sort((x) => x.timestamp)
-
-let session_object = Object.values(all_data).find((x) => x.session === x.id)
-// should be list of sessions instead
-
-let data = [session_object];
+import LogManager from './DataManager.js';
 
 class App extends React.PureComponent {
 
   constructor(props) {
     super(props);
 
+    let logManager = new LogManager(all_data);
+
     this.state = {
       current_index: 0,
-      max_index: all_data_ordered.length,
+      max_index: logManager.maxStep,
       logs: [],
-      current: session_object,
+      current: logManager.getCurrentStep(),
       shouldShowModal: false,
       modalTitle: "",
       modalContent: {},
-      rows: data,
+      rows: logManager.data,
       cols: [
         { name: 'session', title: 'Session', hidden: true },
         { name: 'parent_id', title: 'Parent', hidden: true },
@@ -43,120 +39,44 @@ class App extends React.PureComponent {
       ]
     };
 
-    this.previousLog = () => {
-      if (this.state.current_index === 0) return;
-      const nextRows = this.state.rows.slice();
-      const nextLogs = this.state.logs.slice();
-      let newItem = all_data_ordered[this.state.current_index - 1]
-      data.pop();
-      nextLogs.pop()
-      newItem.step = this.state.current_index - 1
+    this.update = (currentStep, nextRows) => {
       this.setState({
         rows: nextRows,
-        current_index: (this.state.current_index - 1),
-        logs: nextLogs,
-        current: newItem
+        data: logManager.data,
+        current_index: logManager.currentStep,
+        current_id: currentStep.id,
+        logs: logManager.logs,
+        current: currentStep
       });
+    }
+
+    this.previousLog = () => {
+      const nextRows = this.state.rows.slice();
+
+      logManager.previousStep();
+      let currentStep = logManager.getCurrentStep();
+
+      this.update(currentStep, nextRows);
     }
 
     this.nextLog = () => {
       const nextRows = this.state.rows.slice();
-      const nextLogs = this.state.logs.slice();
-      if (!all_data_ordered[this.state.current_index]) return
 
-      let current_step = this.state.current_index + 1
+      logManager.nextStep();
+      let currentStep = logManager.getCurrentStep();
 
-      let newItem = all_data_ordered[this.state.current_index]
-      if (newItem.type.indexOf("log_") === 0) {
-        nextLogs.push(current_step + ". " + newItem.name)
-      } else {
-        nextLogs.push("") // easier to slice it after...
-      }
-      // newItem.name = stripAnsi(newItem.name)
-      newItem.step = current_step
-      data.push(newItem)
-      this.setState({
-        rows: nextRows,
-        current_index: (current_step),
-        current_id: newItem.id,
-        logs: nextLogs,
-        current: newItem
-      });
-    };
-
-    this.getChildRows = (row, rootRows) => {
-      if (row && !row.id) return []; // prevents invalid records from crashing app
-      return (row ? data.filter((x) => { return x.parent_id === row.id }) : rootRows)
+      this.update(currentStep, nextRows);
     }
 
+    this.getChildRows = logManager.getChildRows.bind(logManager);
+
     this.goToStep = (value) => {
-      if (value === this.state.current_index) return;
+      const nextRows = this.state.rows.slice();
 
-      if (value < this.state.current_index) {
-        let diff = this.state.current_index - value;
+      logManager.goToStep(value);
+      let currentStep = logManager.getCurrentStep();
 
-        const nextRows = this.state.rows.slice();
-        const nextLogs = this.state.logs.slice();
-
-        for (let i=0; i<diff; i++) {
-          let newItem = all_data_ordered[this.state.current_index - diff - 1]
-          if (!newItem) break;
-          data.pop();
-          nextLogs.pop()
-          newItem.step = this.state.current_index - diff - 1
-        }
-
-        let newItem = all_data_ordered[this.state.current_index - diff]
-
-        this.setState({
-          rows: nextRows,
-          current_index: (this.state.current_index - diff),
-          logs: nextLogs,
-          current: newItem
-        });
-      }
-
-      if (value > this.state.current_index) {
-        let diff = value - this.state.current_index;
-
-        const nextRows = this.state.rows.slice();
-        const nextLogs = this.state.logs.slice();
-
-        for (let i=0; i<diff; i++) {
-          // TODO: refactor this
-          if (!all_data_ordered[this.state.current_index]) return
-
-          let current_step = this.state.current_index + i + 1
-
-          let newItem = all_data_ordered[current_step]
-          if (!newItem) break;
-          if (newItem.type && newItem.type.indexOf("log_") === 0) {
-            nextLogs.push(current_step + ". " + newItem.name)
-          } else {
-            nextLogs.push("") // easier to slice it after...
-          }
-          // newItem.name = stripAnsi(newItem.name)
-          newItem.step = current_step
-          data.push(newItem)
-        }
-
-        let current_index = this.state.current_index + diff
-        let newItem = all_data_ordered[current_index]
-        // FIXME: probably not needed / wrong index
-        if (!newItem) {
-          newItem = all_data_ordered[this.state.current_index + diff - 1]
-          current_index = this.state.current_index + diff - 1
-        }
-
-        this.setState({
-          rows: nextRows,
-          current_index: (current_index),
-          current_id: newItem.id,
-          logs: nextLogs,
-          current: newItem
-        });
-
-      }
+      this.update(currentStep, nextRows);
     }
 
     this.changeValue = ({target}) => {
@@ -177,9 +97,8 @@ class App extends React.PureComponent {
     this.viewRow = (value) => {
       return () => {
         const {step} = value.row;
-        let item = all_data_ordered[step]
 
-        if (!item) return;
+        let item = logManager.getStep(step)
 
         this.setState({
           modalTitle: "step " + item.step,
@@ -195,17 +114,10 @@ class App extends React.PureComponent {
       <div>
         <DetailModal show={this.state.shouldShowModal} setShow={this.setShow} title={this.state.modalTitle} content={this.state.modalContent} />
         <DebugBar currentStep={this.state.current_index} maxStep={this.state.max_index} currentId={this.state.current_index} goBack={this.previousLog} goForward={this.nextLog} changeStep={this.changeValue} goToStep={this.goToStep} />
-
         <div style={{"margin-top": "55px"}}>
           <ObjectSection log={this.state.current} open={true} />
           <ConsoleSection logs={this.state.logs} open={true} />
-          <LogsSection
-            open={true}
-            cols={this.state.cols}
-            rows={this.state.rows}
-            viewRow={this.viewRow}
-            getChildRows={this.getChildRows}
-          />
+          <LogsSection open={true} cols={this.state.cols} rows={this.state.rows} viewRow={this.viewRow} getChildRows={this.getChildRows} />
         </div>
       </div>
     );

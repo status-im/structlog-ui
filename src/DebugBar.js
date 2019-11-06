@@ -10,7 +10,7 @@ function DebugBar({currentStep, maxStep, currentId, goBack, goForward, changeSte
         step: {currentStep} / {maxStep} id: {currentId}
       </Nav>
       < inline>
-        <button onClick={() => { goToStep(1) }}>First</button>
+        <button onClick={() => { goToStep(0) }}>First</button>
         <button onClick={goBack}>Previous</button>
         <ReactBootstrapSlider min={0} max={maxStep} change={changeStep} value={currentStep} />
         <button onClick={goForward}>Next</button>
