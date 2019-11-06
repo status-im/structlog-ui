@@ -25,6 +25,7 @@ class App extends React.PureComponent {
       modalTitle: "",
       modalContent: {},
       rows: logManager.data,
+      data: logManager.data,
       cols: [
         { name: 'session', title: 'Session', hidden: true },
         { name: 'parent_id', title: 'Parent', hidden: true },
@@ -39,10 +40,11 @@ class App extends React.PureComponent {
       ]
     };
 
-    this.update = (currentStep, nextRows) => {
+    this.update = (nextRows) => {
+      let currentStep = logManager.getCurrentStep();
       this.setState({
         rows: nextRows,
-        data: logManager.data,
+        data: logManager.data.slice(),
         current_index: logManager.currentStep,
         current_id: currentStep.id,
         logs: logManager.logs,
@@ -52,31 +54,22 @@ class App extends React.PureComponent {
 
     this.previousLog = () => {
       const nextRows = this.state.rows.slice();
-
       logManager.previousStep();
-      let currentStep = logManager.getCurrentStep();
-
-      this.update(currentStep, nextRows);
+      this.update(nextRows);
     }
 
     this.nextLog = () => {
       const nextRows = this.state.rows.slice();
-
       logManager.nextStep();
-      let currentStep = logManager.getCurrentStep();
-
-      this.update(currentStep, nextRows);
+      this.update(nextRows);
     }
 
     this.getChildRows = logManager.getChildRows.bind(logManager);
 
     this.goToStep = (value) => {
       const nextRows = this.state.rows.slice();
-
       logManager.goToStep(value);
-      let currentStep = logManager.getCurrentStep();
-
-      this.update(currentStep, nextRows);
+      this.update(nextRows);
     }
 
     this.changeValue = ({target}) => {
@@ -117,7 +110,8 @@ class App extends React.PureComponent {
         <div style={{"margin-top": "55px"}}>
           <ObjectSection log={this.state.current} open={true} />
           <ConsoleSection logs={this.state.logs} open={true} />
-          <LogsSection open={true} cols={this.state.cols} rows={this.state.rows} viewRow={this.viewRow} getChildRows={this.getChildRows} />
+          <LogsSection title={"Sequential Logs"} open={true} isStructured={false} defaultSorting={[{ columnName: 'Timestamp', direction: 'desc' }]} cols={this.state.cols} rows={this.state.data} viewRow={this.viewRow} getChildRows={this.getChildRows} />
+          <LogsSection title={"Structured Logs"} open={true} isStructured={true} defaultSorting={[{ columnName: 'Timestamp', direction: 'asc' }]} cols={this.state.cols} rows={this.state.rows} viewRow={this.viewRow} getChildRows={this.getChildRows} />
         </div>
       </div>
     );

@@ -22,4 +22,3 @@ function ConsoleSection({logs, open}) {
 }
 
 export default ConsoleSection;
-

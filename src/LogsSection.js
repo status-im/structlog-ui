@@ -16,23 +16,27 @@ let numberFilterOperations = [
 
 let tableColumnExtensions = [{ columnName: 'name', width: 300, align: 'left' }];
 
-function LogsSection({open, cols, rows, viewRow, getChildRows}) {
+function LogsSection({title, open, isStructured, defaultSorting, cols, rows, viewRow, getChildRows}) {
   let columns = cols;
   let defaultColumnWidths = cols.map((x) => { return {columnName: x.name, width: (x.width || 200)} })
   let defaultHiddenColumnNames = cols.filter((x) => x.hidden).map((x) => x.name)
   let defaultOrder = cols.map((x) => x.name)
 
   return (
-    <Section title="Logs" defaultOpen={open}>
+    <Section title={title} defaultOpen={open}>
       <Grid rows={rows} columns={columns} >
         <LogTypeProvider for={["name"]} onClick={viewRow} />
         <StepTypeProvider for={["step"]} onClick={viewRow} availableFilterOperations={numberFilterOperations} />
         <TreeDataState defaultExpandedRowIds={[]} />
-        <CustomTreeData getChildRows={getChildRows} />
+        {isStructured &&
+          <>
+            <CustomTreeData getChildRows={getChildRows} />
+          </>
+        }
         <FilteringState defaultFilters={[]} />
         <SearchState defaultValue="" />
         <IntegratedFiltering />
-        <SortingState defaultSorting={[{ columnName: 'Timestamp', direction: 'asc' }]} />
+        <SortingState defaultSorting={defaultSorting} />
         <IntegratedSorting />
         <DragDropProvider />
         <Table columnExtensions={tableColumnExtensions} />
@@ -43,7 +47,11 @@ function LogsSection({open, cols, rows, viewRow, getChildRows}) {
         <Toolbar />
         <SearchPanel />
         <TableFilterRow showFilterSelector={true} />
-        <TableTreeColumn for="name" />
+        {isStructured && 
+          <>
+            <TableTreeColumn for="name" />
+          </>
+        }
         <ColumnChooser />
       </Grid>
     </Section>
@@ -51,4 +59,3 @@ function LogsSection({open, cols, rows, viewRow, getChildRows}) {
 }
 
 export default LogsSection;
-

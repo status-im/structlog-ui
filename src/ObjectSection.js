@@ -11,4 +11,3 @@ function ObjectSection({log, open}) {
 }
 
 export default ObjectSection;
-
