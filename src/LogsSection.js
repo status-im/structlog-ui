@@ -16,7 +16,12 @@ let numberFilterOperations = [
 
 let tableColumnExtensions = [{ columnName: 'name', width: 300, align: 'left' }];
 
-function LogsSection({open, rows, columns, viewRow, getChildRows, defaultColumnWidths, defaultHiddenColumnNames, defaultOrder}) {
+function LogsSection({open, cols, rows, viewRow, getChildRows}) {
+  let columns = cols;
+  let defaultColumnWidths = cols.map((x) => { return {columnName: x.name, width: (x.width || 200)} })
+  let defaultHiddenColumnNames = cols.filter((x) => x.hidden).map((x) => x.name)
+  let defaultOrder = cols.map((x) => x.name)
+
   return (
     <Section title="Logs" defaultOpen={open}>
       <Grid rows={rows} columns={columns} >

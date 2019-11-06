@@ -25,42 +25,22 @@ class App extends React.PureComponent {
       max_index: all_data_ordered.length,
       logs: [],
       current: session_object,
-      columns: [
-        { name: 'session', title: 'Session' },
-        { name: 'parent_id', title: 'Parent' },
-        { name: 'id', title: 'Id' },
+      shouldShowModal: false,
+      modalTitle: "",
+      modalContent: {},
+      rows: data,
+      cols: [
+        { name: 'session', title: 'Session', hidden: true },
+        { name: 'parent_id', title: 'Parent', hidden: true },
+        { name: 'id', title: 'Id', hidden: true },
         { name: 'step', title: 'Step' },
-        { name: 'name', title: 'Name' },
+        { name: 'name', title: 'Name', width: 600 },
         { name: 'type', title: 'Type' },
         { name: 'timestamp', title: 'Timestamp' },
         // { name: 'error', title: 'Error' },
         // { name: 'inputs', title: 'Inputs' },
-        { name: 'msg', title: 'Error' },
-      ],
-      // rows: [session_object],
-      rows: data,
-      // defaultExpandedRowIds: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27]
-      defaultExpandedRowIds: [],
-      defaultHiddenColumnNames: ['session', 'parent_id', 'id', 'error'],
-      // defaultHiddenColumnNames: []
-      defaultColumnWidths: [
-        // { columnName: 'step', width: 10 },
-
-        { columnName: 'session', width: 200 },
-        { columnName: 'parent_id', width: 200 },
-        { columnName: 'id', width: 200 },
-        { columnName: 'step', width: 150 },
-        { columnName: 'name', width: 600 },
-        { columnName: 'type', width: 200 },
-        { columnName: 'timestamp', width: 200 },
-        // { name: 'error', width: 200 },
-        // { name: 'inputs', width: 200 },
-        { columnName: 'msg', width: 200 },
-      ],
-      defaultOrder: ['session', 'parent_id', 'id', 'step', 'name', 'type', 'timestamp', 'msg'],
-      shouldShowModal: false,
-      modalTitle: "",
-      modalContent: {}
+        { name: 'msg', title: 'Error', hidden: true },
+      ]
     };
 
     this.previousLog = () => {
@@ -221,13 +201,10 @@ class App extends React.PureComponent {
           <ConsoleSection logs={this.state.logs} open={true} />
           <LogsSection
             open={true}
+            cols={this.state.cols}
             rows={this.state.rows}
-            columns={this.state.columns}
             viewRow={this.viewRow}
             getChildRows={this.getChildRows}
-            defaultColumnWidths={this.state.defaultColumnWidths}
-            defaultHiddenColumnNames={this.state.defaultHiddenColumnNames}
-            defaultOrder={this.state.defaultOrder}
           />
         </div>
       </div>
