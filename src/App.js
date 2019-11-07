@@ -35,7 +35,7 @@ class App extends React.PureComponent {
         { name: 'parent', title: 'ParentName'},
         { name: 'summary', title: 'Log', width: 600, hidden: true },
         { name: 'type', title: 'Type' },
-        { name: 'name', title: 'Name', width: 350},
+        { name: 'name', title: 'Name', width: 450},
         { name: 'inputs_preview', title: 'Inputs'},
         { name: 'outputs_preview', title: 'Outputs'},
         { name: 'timestamp', title: 'Timestamp', hidden: true },

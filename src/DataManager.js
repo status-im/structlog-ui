@@ -1,3 +1,52 @@
+var _get = require('lodash.get');
+
+// map a property depending on type to an identifier
+const identifier_mappings = {
+  request: {
+    "pipeline:register": "inputs[0].file",
+    "processes:register": "inputs[0]",
+    "services:register": "inputs[0]",
+    "process:logs:register": "inputs[0].processName",
+    "runcode:whitelist": "inputs[0]",
+    "runcode:register": "inputs[0]",
+    "communication:node:register": "inputs[0]",
+    "blockchain:node:register": "inputs[0]",
+    "blockchain:node:start": "inputs[0].client",
+    "whisper:node:register": "inputs[0]",
+    "blockchain:client:register": "inputs[0]",
+    "blockchain:api:register": "inputs[1]",
+    "deployment:deployer:register": "inputs[0]",
+    "blockchain:client:provider": "inputs[0]",
+    "embarkjs:plugin:register": "inputs", // multiple relevant params
+    "embarkjs:console:register": "inputs", // multiple  relevant params
+    "embarkjs:contract:generate": "inputs[0].className", // multiple  relevant params
+    "console:register:helpCmd": "inputs[0].cmdName",
+    "storage:node:register": "inputs[0]",
+    "storage:upload:register": "inputs[0]",
+    "deployment:contract:deploy": "inputs[0].className",
+  },
+  trigger_action: {
+    "deployment:contract:shouldDeploy": "inputs.contract.className",
+    "deployment:contract:beforeDeploy": "inputs.contract.className",
+    "deployment:contract:deployed": "inputs.contract.className",
+    "deployment:contract:undeployed": "inputs.contract.className",
+    "blockchain:proxy:request": "inputs.reqData.method",
+    "blockchain:proxy:response": "inputs.reqData.method",
+  },
+  action_run: {
+    "deployment:contract:shouldDeploy": "inputs.contract.className",
+    "deployment:contract:beforeDeploy": "inputs.contract.className",
+    "deployment:contract:deployed": "inputs.contract.className",
+    "deployment:contract:undeployed": "inputs.contract.className",
+    "blockchain:proxy:request": "inputs.reqData.method",
+    "blockchain:proxy:response": "inputs.reqData.method",
+  },
+  method: {
+    "deployContract": "inputs.contract.className"
+  }
+}
+
+identifier_mappings.old_request = identifier_mappings.request;
 
 class LogManager {
 
@@ -15,12 +64,34 @@ class LogManager {
     let session = Object.values(data).find((x) => x.session === x.id)
 
     return Object.values(data).sort((x) => x.timestamp).map((x) => {
+      // TODO: should be done on the embark level not on the logger
+      if (x.name && x.name.indexOf('bound ') > 0) {
+        x.name = x.name.replace('bound ', ' ')
+      }
       x.timepassed = (x.timestamp - session.timestamp) / 1000.0;
       if (data[x.parent_id]) {
         if (x.parent_id === session.id && x.module) {
           x.parent = x.module;
         } else {
           x.parent = data[x.parent_id].name;
+        }
+      }
+
+      if (identifier_mappings[x.type] && identifier_mappings[x.type][x.name]) {
+        x.name += ` (${_get(x, identifier_mappings[x.type][x.name], "???")})`
+      } else if (x.type === 'action_run') {
+        let real_name = x.name.split(" ")[0];
+
+        if (identifier_mappings[x.type] && identifier_mappings[x.type][real_name]) {
+          x.name += ` (${_get(x, identifier_mappings[x.type][real_name], "???")})`
+        }
+      }
+
+      if (x.name === "blockchain:proxy:request") {
+        if (x && x.inputs && x.inputs.reqData && x.inputs.reqData.method) {
+          x.name += ` (${x.inputs.reqData.method})`
+        } else {
+          x.name += ` (???)`
         }
       }
 
