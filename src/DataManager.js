@@ -97,7 +97,8 @@ class LogManager {
     this.currentStep += 1;
 
     let newItem = this.all_data_ordered[this.currentStep]
-    if (newItem.type.indexOf("log_") === 0) {
+
+    if (newItem && newItem.type && newItem.type.indexOf("log_") === 0) {
       this.logs.push(this.currentStep + ". " + newItem.name)
     } else {
       this.logs.push("") // easier to slice it after...
