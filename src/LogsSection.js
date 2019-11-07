@@ -25,7 +25,7 @@ function LogsSection({title, open, isStructured, defaultSorting, cols, rows, vie
   return (
     <Section title={title} defaultOpen={open}>
       <Grid rows={rows} columns={columns} >
-        <LogTypeProvider for={["name"]} onClick={viewRow} />
+        <LogTypeProvider for={["name", "summary"]} onClick={viewRow} />
         <StepTypeProvider for={["step"]} onClick={viewRow} availableFilterOperations={numberFilterOperations} />
         <TreeDataState defaultExpandedRowIds={[]} />
         {isStructured &&

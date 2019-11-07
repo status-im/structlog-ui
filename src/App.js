@@ -30,10 +30,15 @@ class App extends React.PureComponent {
         { name: 'session', title: 'Session', hidden: true },
         { name: 'parent_id', title: 'Parent', hidden: true },
         { name: 'id', title: 'Id', hidden: true },
-        { name: 'step', title: 'Step' },
-        { name: 'name', title: 'Name', width: 600 },
+        { name: 'step', title: 'Step', width: 100 },
+        { name: 'timepassed', title: 'Time', width: 100 },
+        { name: 'parent', title: 'ParentName'},
+        { name: 'summary', title: 'Log', width: 600, hidden: true },
         { name: 'type', title: 'Type' },
-        { name: 'timestamp', title: 'Timestamp' },
+        { name: 'name', title: 'Name', width: 350},
+        { name: 'inputs_preview', title: 'Inputs'},
+        { name: 'outputs_preview', title: 'Outputs'},
+        { name: 'timestamp', title: 'Timestamp', hidden: true },
         // { name: 'error', title: 'Error' },
         // { name: 'inputs', title: 'Inputs' },
         { name: 'msg', title: 'Error', hidden: true },
@@ -91,7 +96,8 @@ class App extends React.PureComponent {
       return () => {
         const {step} = value.row;
 
-        let item = logManager.getStep(step)
+        let item = logManager.getStep(step);
+        if (!item) return;
 
         this.setState({
           modalTitle: "step " + item.step,
