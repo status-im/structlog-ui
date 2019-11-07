@@ -1,3 +1,15 @@
+
+## Usage
+
+`yarn`
+
+`mkdir src/logs/`
+
+copy `logs.json` file to that directory. sample can be found [here](https://drive.google.com/file/d/1uwCii2hbfDfsc52bN2_p0gGAkcetcf2r/view?usp=sharing)
+
+`yarn start`
+
+
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
