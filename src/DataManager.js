@@ -14,6 +14,7 @@ const identifier_mappings = {
     "blockchain:node:start": "inputs[0].client",
     "whisper:node:register": "inputs[0]",
     "blockchain:client:register": "inputs[0]",
+    "blockchain:request:register": "inputs[1]",
     "blockchain:api:register": "inputs[1]",
     "deployment:deployer:register": "inputs[0]",
     "blockchain:client:provider": "inputs[0]",
