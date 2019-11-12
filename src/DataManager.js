@@ -69,6 +69,9 @@ class LogManager {
       if (x.name && x.name.indexOf('bound ') > 0) {
         x.name = x.name.replace('bound ', ' ')
       }
+      if (x.type === 'action_run' && x.name.indexOf('undefined')) {
+        x.name = x.name.replace('undefined', '')
+      }
       x.timepassed = (x.timestamp - session.timestamp) / 1000.0;
       if (data[x.parent_id]) {
         if (x.parent_id === session.id && x.module) {
