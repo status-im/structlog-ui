@@ -1,7 +1,7 @@
 const lineByLine = require('n-readlines');
 const fs = require('fs-extra');
 
-const liner = new lineByLine('./raw_logs.json');
+const liner = new lineByLine('./structlog-embark.json');
 
 let DB = {};
 let line;
